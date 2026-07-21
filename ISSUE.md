@@ -146,7 +146,7 @@ Douglas Braga
 
 ### Affiliation:
 
-Ipea (Instituto de Pesquisa Econômica Aplicada)
+Institute for Applied Economic Research (Ipea)
 
 ### Did you include all relevant configuration (e.g., CPU architecture, Linux distribution) to reproduce the issue?
 
