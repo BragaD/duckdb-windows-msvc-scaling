@@ -1,8 +1,7 @@
-<!-- Paste this into https://github.com/duckdb/duckdb/issues/new
-     Suggested title:
+<!-- Filled per the DuckDB bug-report template. Suggested title:
      Windows: MSVC build (windows_amd64) scales much worse with threads than the MinGW build (windows_amd64_mingw) on wide-join workloads -->
 
-### What happens
+### What happens?
 
 On Windows, the **MSVC build** of DuckDB (`PRAGMA platform` → `windows_amd64`,
 used by the official **CLI** and the **PyPI Python wheel**) scales **much worse
@@ -33,12 +32,34 @@ then regress**:
 (wall-clock seconds, lower is better; shared machine, so treat the absolute
 numbers as indicative — the **scaling shape** is the point.)
 
-### Reproduction (self-contained)
+`EXPLAIN ANALYZE` of a single wide join (threads = 8) isolates it: R
+`windows_amd64_mingw` **1.27 s** vs Python / CLI `windows_amd64` (MSVC)
+**4.67 / 4.62 s** (~3.7×).
+
+**What we ruled out:**
+
+- **The Python binding** — the native **CLI** (no language binding) is just as
+  slow as the wheel; both are `windows_amd64` (MSVC), only R is MinGW.
+- **Engine / SQL / settings** — identical DuckDB version, SQL, and session
+  settings (`threads`, `memory_limit`, `preserve_insertion_order`,
+  `temp_directory`, `default_order`, `checkpoint_threshold`, …). Single-threaded
+  all three are at parity.
+- **The CRT allocator** — overriding the process `malloc` with **mimalloc** (on
+  the MSVC/Python process via `minject`, with `mimalloc: malloc is redirected`
+  confirmed) does **not** help (≤ 5% at 8 threads, nothing at 24). `SET
+  allocator_background_threads = true` does not help either.
+
+So the difference appears to be in the **MSVC build's parallel execution**
+(hash-join build/probe and wide materialization) — possibly DuckDB's internal
+memory management or MSVC code generation / threading — rather than the CRT
+allocator.
+
+### To Reproduce
 
 The workload builds a wide table (`id`, `key`, 8 string columns; 8M rows) plus a
 2M-row dictionary, then carries the whole *widening* table through **6
 `LEFT JOIN`s**, re-materializing each time. Each snippet below generates its own
-data — no external files needed. Same machine, same DuckDB 1.5.4.
+data — no external files. Same machine, same DuckDB 1.5.4.
 
 **R — `windows_amd64_mingw` (fast):**
 
@@ -99,31 +120,42 @@ The **duckdb CLI** (also `windows_amd64` / MSVC) matches Python. Increasing
 `SET threads TO 16` makes the MSVC builds *slower* still, while the MinGW build
 stays flat and low.
 
-### What we ruled out
-
-- **The Python binding** — the native **CLI** (no language binding) is just as
-  slow as the Python wheel. Both are `windows_amd64` (MSVC); only R is MinGW.
-- **Engine / SQL / settings** — identical DuckDB version, identical SQL,
-  identical session settings (`threads`, `memory_limit`,
-  `preserve_insertion_order`, `temp_directory`, `default_order`,
-  `checkpoint_threshold`, …). Single-threaded, all three are at parity.
-- **The CRT allocator** — overriding the process `malloc` with **mimalloc** (on
-  the MSVC/Python process via `minject`, with `mimalloc: malloc is redirected`
-  confirmed) does **not** help (≤ 5% at 8 threads, nothing at 24). `SET
-  allocator_background_threads = true` does not help either.
-
-So the difference appears to be in the **MSVC build's parallel execution**
-(hash-join build/probe and wide materialization) — possibly DuckDB's internal
-memory management or MSVC code generation / threading — rather than the CRT
-allocator.
-
-### Environment
-
-- Windows Server 2022, 24 logical cores, ~500 GB RAM.
-- DuckDB **1.5.4** in all three clients (R package `duckdb` 1.5.4.3 → engine
-  1.5.4; Python wheel 1.5.4; CLI 1.5.4). The same MSVC-vs-MinGW split also shows
-  up with 1.5.2, so it is not version-specific.
-
-Full harness — R data generator, per-client benchmarks (R / Python / CLI), a
-thread-sweep driver, and this write-up — is in the reproduction repo:
+Full harness — R data generator, per-client benchmarks, `EXPLAIN ANALYZE`
+scripts, and a thread-sweep driver — is in the reproduction repo:
 **https://github.com/BragaD/duckdb-windows-msvc-scaling**
+
+### OS:
+
+Windows Server 2022 (x86_64)
+
+### DuckDB Version:
+
+1.5.4 (R package `duckdb` 1.5.4.3 → engine 1.5.4; Python wheel 1.5.4; CLI 1.5.4)
+
+### DuckDB Client:
+
+Python (PyPI wheel) and the duckdb CLI — both `windows_amd64` (MSVC) — compared against R (CRAN), which is `windows_amd64_mingw`
+
+### Hardware:
+
+24 logical cores, ~500 GB RAM
+
+### Full Name:
+
+Douglas Braga
+
+### Affiliation:
+
+Ipea (Instituto de Pesquisa Econômica Aplicada)
+
+### Did you include all relevant configuration (e.g., CPU architecture, Linux distribution) to reproduce the issue?
+
+- [X] Yes, I have
+
+### Did you include all code required to reproduce the issue?
+
+- [X] Yes, I have
+
+### Did you include all relevant data sets for reproducing the issue?
+
+Not applicable - the reproduction does not require a data set
