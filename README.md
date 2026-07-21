@@ -28,7 +28,7 @@ exactly with the **compiler toolchain of the build**.
 
 ## Environment
 
-- Windows Server 2022, 24 logical cores, ~500 GB RAM.
+- Windows Server 2022; Intel Xeon Gold 6426Y, 24 logical cores (virtual machine), 512 GB RAM.
 - **DuckDB 1.5.4 in all three clients** (R package `duckdb` 1.5.4.3 → engine
   1.5.4; Python wheel 1.5.4; CLI 1.5.4). Same version everywhere — the only
   difference is the **build toolchain** (`windows_amd64` = MSVC vs.

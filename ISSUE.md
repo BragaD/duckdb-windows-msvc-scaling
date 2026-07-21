@@ -138,7 +138,7 @@ Python (PyPI wheel) and the duckdb CLI — both `windows_amd64` (MSVC) — compa
 
 ### Hardware:
 
-24 logical cores, ~500 GB RAM
+Intel Xeon Gold 6426Y, 24 logical cores (virtual machine), 512 GB RAM
 
 ### Full Name:
 
