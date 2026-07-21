@@ -124,5 +124,6 @@ allocator.
   1.5.4; Python wheel 1.5.4; CLI 1.5.4). The same MSVC-vs-MinGW split also shows
   up with 1.5.2, so it is not version-specific.
 
-A full multi-client thread sweep (`gen_data.R`, `workload.sql`, `bench.R`,
-`bench.py`, `bench_cli.sh`, `run_all.sh`) is available if useful.
+Full harness — R data generator, per-client benchmarks (R / Python / CLI), a
+thread-sweep driver, and this write-up — is in the reproduction repo:
+**https://github.com/BragaD/duckdb-windows-msvc-scaling**
